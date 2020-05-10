@@ -38,7 +38,6 @@ public class Main {
 
         Scanner scanner = new Scanner(System.in);
         DataHandler dataHandler = new RequestDataHandler(RESOURCE_URI, new Authorizer(ACCESS_URI), new SpotifyResponseParser());
-//        DataHandler dataHandler = new DataStub(new Authorizer(ACCESS_URI));
         InputParser parser = new InputParser(dataHandler);
 
         boolean isRunning = true;
@@ -57,6 +56,8 @@ public class Main {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            } else if ("help".equals(input)) {
+                System.out.println(USAGE);
             } else {
                 try {
                     Collection<?> response = parser.processInput(input);
