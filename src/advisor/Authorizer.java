@@ -16,6 +16,7 @@ import java.net.URLDecoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -61,34 +62,30 @@ public class Authorizer {
         System.out.println("making http request for access_token...");
 
         HttpClient client = HttpClient.newBuilder().build();
-        StringBuilder postBody = new StringBuilder();
-        postBody.append(GRANT_TYPE_KEY + "=" + GRANT_TYPE_VALUE);
-        postBody.append("&" + CODE_KEY + "=" + accessCode);
-        postBody.append("&" + REDIRECT_KEY + "=" + REDIRECT_URI);
 
         String secret = CLIENT_ID + ":" + CLIENT_SECRET;
         String encodedSecret = Base64.getEncoder().encodeToString(secret.getBytes());
+        String postBody = GRANT_TYPE_KEY + "=" + GRANT_TYPE_VALUE +
+                "&" + CODE_KEY + "=" + accessCode +
+                "&" + REDIRECT_KEY + "=" + REDIRECT_URI;
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(tokenAccessUri))
                 .headers("Content-Type", "application/x-www-form-urlencoded",
                         "Authorization", "Basic " + encodedSecret)
-                .POST(HttpRequest.BodyPublishers.ofString(postBody.toString()))
+                .POST(HttpRequest.BodyPublishers.ofString(postBody))
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        System.out.println("response:");
-        System.out.println(response.body());
         JsonObject jo = JsonParser.parseString(response.body()).getAsJsonObject();
         accessToken = jo.get(ACCESS_TOKEN).getAsString();
-        System.out.println(accessToken);
     }
 
     public static Map<String, String> splitQuery(String query) throws UnsupportedEncodingException {
-        Map<String, String> query_pairs = new LinkedHashMap<String, String>();
+        Map<String, String> query_pairs = new LinkedHashMap<>();
         String[] pairs = query.split("&");
         for (String pair : pairs) {
             int idx = pair.indexOf("=");
-            query_pairs.put(URLDecoder.decode(pair.substring(0, idx), "UTF-8"), URLDecoder.decode(pair.substring(idx + 1), "UTF-8"));
+            query_pairs.put(URLDecoder.decode(pair.substring(0, idx), StandardCharsets.UTF_8), URLDecoder.decode(pair.substring(idx + 1), StandardCharsets.UTF_8));
         }
         return query_pairs;
     }
@@ -102,7 +99,7 @@ public class Authorizer {
                 new HttpHandler() {
                     @Override
                     public void handle(HttpExchange exchange) throws IOException {
-                        String message = "";
+                        String message;
                         if (exchange.getRequestURI().getQuery() != null) {
                             Map<String, String> queryParams = splitQuery(exchange.getRequestURI().getQuery());
                             if (queryParams.containsKey("code")) {
